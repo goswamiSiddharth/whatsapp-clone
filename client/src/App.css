@@ -1,0 +1,6 @@
+/* client/src/App.css */
+/* Custom styles for WhatsApp-like background */
+.bg-whatsapp-bg {
+  background-image: url('https://web.whatsapp.com/img/bg-chat-tile_9e8a2898faedb7db9bf563ce902837d2.png');
+  background-color: #e5ddd5;
+}
