@@ -1,18 +1,11 @@
-
-
-
+// // client/src/App.js
 // import React, { useState, useEffect } from 'react';
 // import io from 'socket.io-client';
 // import MessageList from './components/MessageList';
 // import ChatList from './components/ChatList';
 // import MessageInput from './components/MessageInput';
 
-// const socket = io(
-//   process.env.NODE_ENV === 'development'
-//     ? 'http://localhost:5000'
-//     : 'https://whatsapp-clone-jfiz.vercel.app',
-//   { transports: ['websocket'] }
-// );
+// const socket = io('http://localhost:5000', { transports: ['websocket'] });
 
 // function App() {
 //   const [messages, setMessages] = useState([]);
@@ -23,11 +16,7 @@
 //   useEffect(() => {
 //     const fetchUsers = async () => {
 //       try {
-//         const response = await fetch(
-//           process.env.NODE_ENV === 'development'
-//             ? 'http://localhost:5000/messages/users'
-//             : 'https://whatsapp-clone-jfiz.vercel.app/messages/users'
-//         );
+//         const response = await fetch('http://localhost:5000/messages/users');
 //         const data = await response.json();
 //         console.log('Fetched users:', data);
 //         setUsers(data);
@@ -40,11 +29,7 @@
 //     const fetchMessages = async () => {
 //       if (selectedUser) {
 //         try {
-//           const response = await fetch(
-//             process.env.NODE_ENV === 'development'
-//               ? `http://localhost:5000/messages/${encodeURIComponent(selectedUser)}`
-//               : `https://whatsapp-clone-jfiz.vercel.app/messages/${encodeURIComponent(selectedUser)}`
-//           );
+//           const response = await fetch(`http://localhost:5000/messages/${encodeURIComponent(selectedUser)}`);
 //           const data = await response.json();
 //           console.log(`Fetched messages for ${selectedUser}:`, data);
 //           setMessages(data);
@@ -127,16 +112,11 @@
 //     };
 
 //     try {
-//       const response = await fetch(
-//         process.env.NODE_ENV === 'development'
-//           ? 'http://localhost:5000/messages'
-//           : 'https://whatsapp-clone-jfiz.vercel.app/messages',
-//         {
-//           method: 'POST',
-//           headers: { 'Content-Type': 'application/json' },
-//           body: JSON.stringify(payload),
-//         }
-//       );
+//       const response = await fetch('http://localhost:5000/messages', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(payload),
+//       });
 //       if (!response.ok) {
 //         throw new Error(`HTTP error ${response.status}`);
 //       }
@@ -191,21 +171,17 @@
 
 
 import React, { useState, useEffect } from 'react';
+import io from 'socket.io-client';
 import MessageList from './components/MessageList';
 import ChatList from './components/ChatList';
 import MessageInput from './components/MessageInput';
 
-// Error boundary to prevent app crash
-class ErrorBoundary extends React.Component {
-  state = { hasError: false };
-  static getDerivedStateFromError(error) { return { hasError: true }; }
-  render() {
-    if (this.state.hasError) {
-      return <h1>Failed to load chats. Please refresh or try again later.</h1>;
-    }
-    return this.props.children;
-  }
-}
+const socket = io(
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://whatsapp-clone-jfiz.vercel.app',
+  { transports: ['websocket'] }
+);
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -217,9 +193,10 @@ function App() {
     const fetchUsers = async () => {
       try {
         const response = await fetch(
-          process.env.REACT_APP_API_URL || 'https://whatsapp-clone-jfiz.vercel.app/messages/users'
+          process.env.NODE_ENV === 'development'
+            ? 'http://localhost:5000/messages/users'
+            : 'https://whatsapp-clone-jfiz.vercel.app/messages/users'
         );
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         const data = await response.json();
         console.log('Fetched users:', data);
         setUsers(data);
@@ -233,9 +210,10 @@ function App() {
       if (selectedUser) {
         try {
           const response = await fetch(
-            `${process.env.REACT_APP_API_URL || 'https://whatsapp-clone-jfiz.vercel.app'}/messages/${encodeURIComponent(selectedUser)}`
+            process.env.NODE_ENV === 'development'
+              ? `http://localhost:5000/messages/${encodeURIComponent(selectedUser)}`
+              : `https://whatsapp-clone-jfiz.vercel.app/messages/${encodeURIComponent(selectedUser)}`
           );
-          if (!response.ok) throw new Error(`HTTP error ${response.status}`);
           const data = await response.json();
           console.log(`Fetched messages for ${selectedUser}:`, data);
           setMessages(data);
@@ -248,10 +226,31 @@ function App() {
     };
     fetchMessages();
 
-    // Poll for new messages every 5 seconds (simulate real-time)
-    const interval = setInterval(fetchMessages, 5000);
+    socket.on('newMessage', (message) => {
+      console.log('New message received via WebSocket:', message);
+      if (message.sender === selectedUser || message.recipient === selectedUser) {
+        setMessages((prev) => {
+          if (!prev.find((msg) => msg.messageId === message.messageId)) {
+            return [...prev, message];
+          }
+          return prev;
+        });
+      }
+    });
 
-    return () => clearInterval(interval);
+    socket.on('statusUpdate', ({ messageId, status }) => {
+      console.log(`Status update for ${messageId}: ${status}`);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.messageId === messageId ? { ...msg, status } : msg
+        )
+      );
+    });
+
+    return () => {
+      socket.off('newMessage');
+      socket.off('statusUpdate');
+    };
   }, [selectedUser]);
 
   const sendMessage = async (text) => {
@@ -298,14 +297,18 @@ function App() {
 
     try {
       const response = await fetch(
-        process.env.REACT_APP_API_URL || 'https://whatsapp-clone-jfiz.vercel.app/messages',
+        process.env.NODE_ENV === 'development'
+          ? 'http://localhost:5000/messages'
+          : 'https://whatsapp-clone-jfiz.vercel.app/messages',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }
       );
-      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
       const newMessage = await response.json();
       console.log('Sent message:', newMessage);
       if (newMessage.recipient === selectedUser || newMessage.sender === selectedUser) {
@@ -322,34 +325,32 @@ function App() {
   };
 
   return (
-    <ErrorBoundary>
-      <div className="flex flex-col md:flex-row h-screen w-full overflow-x-hidden max-w-7xl mx-auto bg-gray-100">
-        <div className={`${showChatList ? 'block' : 'hidden'} md:block w-full md:w-1/3`}>
-          <ChatList
-            users={users}
-            setSelectedUser={(user) => {
-              setSelectedUser(user);
-              setShowChatList(false);
-            }}
-          />
-        </div>
-        <div className={`${showChatList ? 'hidden' : 'flex'} md:flex flex-1 flex-col w-full`}>
-          {selectedUser && (
-            <div className="flex items-center p-2 bg-green-600 text-white w-full">
-              <button
-                className="md:hidden mr-3 text-white text-lg"
-                onClick={() => setShowChatList(true)}
-              >
-                ←
-              </button>
-              <h2 className="text-base md:text-lg font-semibold">{selectedUser}</h2>
-            </div>
-          )}
-          <MessageList messages={messages} />
-          <MessageInput sendMessage={sendMessage} disabled={!selectedUser} />
-        </div>
+    <div className="flex flex-col md:flex-row h-screen w-full overflow-x-hidden max-w-7xl mx-auto bg-gray-100">
+      <div className={`${showChatList ? 'block' : 'hidden'} md:block w-full md:w-1/3`}>
+        <ChatList
+          users={users}
+          setSelectedUser={(user) => {
+            setSelectedUser(user);
+            setShowChatList(false);
+          }}
+        />
       </div>
-    </ErrorBoundary>
+      <div className={`${showChatList ? 'hidden' : 'flex'} md:flex flex-1 flex-col w-full`}>
+        {selectedUser && (
+          <div className="flex items-center p-2 bg-green-600 text-white w-full">
+            <button
+              className="md:hidden mr-3 text-white text-lg"
+              onClick={() => setShowChatList(true)}
+            >
+              ←
+            </button>
+            <h2 className="text-base md:text-lg font-semibold">{selectedUser}</h2>
+          </div>
+        )}
+        <MessageList messages={messages} />
+        <MessageInput sendMessage={sendMessage} disabled={!selectedUser} />
+      </div>
+    </div>
   );
 }
 
