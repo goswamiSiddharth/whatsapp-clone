@@ -1,3 +1,4 @@
+
 // const express = require('express');
 // const http = require('http');
 // const socketIo = require('socket.io');
@@ -13,14 +14,11 @@
 // // Initialize Express app and HTTP server
 // const app = express();
 // const server = http.createServer(app);
-
-// // Define allowed origins for CORS
 // const allowedOrigins = [
-//   process.env.CLIENT_URL || 'http://localhost:3000',
-//   'https://whatsapp-clone-ten-beryl.vercel.app' // Explicitly allow deployed client
+//   process.env.CLIENT_URL, // Vercel: https://whatsapp-clone-ten-beryl.vercel.app
+//   'http://localhost:3000' // Local testing
 // ];
 
-// // Configure Socket.IO with CORS
 // const io = socketIo(server, {
 //   cors: {
 //     origin: (origin, callback) => {
@@ -60,7 +58,6 @@
 // });
 
 
-
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -80,10 +77,10 @@ const server = http.createServer(app);
 // Define allowed origins for CORS
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:3000',
-  'https://whatsapp-clone-ten-beryl.vercel.app'
+  'https://whatsapp-clone-ten-beryl.vercel.app' // Explicitly allow deployed client
 ];
 
-// Configure Socket.IO with CORS and polling fallback
+// Configure Socket.IO with CORS
 const io = socketIo(server, {
   cors: {
     origin: (origin, callback) => {
@@ -94,10 +91,7 @@ const io = socketIo(server, {
       }
     },
     methods: ['GET', 'POST'],
-    credentials: true
   },
-  transports: ['websocket', 'polling'], // Enable polling fallback
-  allowEIO3: true // Support Socket.IO v3 clients
 });
 
 // Middleware
@@ -109,8 +103,7 @@ app.use(cors({
     } else {
       callback(new Error('Not allowed by CORS'));
     }
-  },
-  credentials: true
+  }
 }));
 app.use(express.json());
 
@@ -125,6 +118,3 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-// Export for Vercel serverless
-module.exports = app;
