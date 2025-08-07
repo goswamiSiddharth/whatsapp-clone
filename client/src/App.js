@@ -1,4 +1,3 @@
-
 // // client/src/App.js
 // import React, { useState, useEffect } from 'react';
 // import io from 'socket.io-client';
@@ -171,18 +170,18 @@
 
 
 
-
-
-
-
-// client/src/App.js
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 import MessageList from './components/MessageList';
 import ChatList from './components/ChatList';
 import MessageInput from './components/MessageInput';
 
-const socket = io('http://localhost:5000', { transports: ['websocket'] });
+const socket = io(
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:5000'
+    : 'https://whatsapp-clone-jfiz.vercel.app',
+  { transports: ['websocket'] }
+);
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -193,7 +192,11 @@ function App() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await fetch('http://localhost:5000/messages/users');
+        const response = await fetch(
+          process.env.NODE_ENV === 'development'
+            ? 'http://localhost:5000/messages/users'
+            : 'https://whatsapp-clone-jfiz.vercel.app/messages/users'
+        );
         const data = await response.json();
         console.log('Fetched users:', data);
         setUsers(data);
@@ -206,7 +209,11 @@ function App() {
     const fetchMessages = async () => {
       if (selectedUser) {
         try {
-          const response = await fetch(`http://localhost:5000/messages/${encodeURIComponent(selectedUser)}`);
+          const response = await fetch(
+            process.env.NODE_ENV === 'development'
+              ? `http://localhost:5000/messages/${encodeURIComponent(selectedUser)}`
+              : `https://whatsapp-clone-jfiz.vercel.app/messages/${encodeURIComponent(selectedUser)}`
+          );
           const data = await response.json();
           console.log(`Fetched messages for ${selectedUser}:`, data);
           setMessages(data);
@@ -289,11 +296,16 @@ function App() {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        process.env.NODE_ENV === 'development'
+          ? 'http://localhost:5000/messages'
+          : 'https://whatsapp-clone-jfiz.vercel.app/messages',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
       }
